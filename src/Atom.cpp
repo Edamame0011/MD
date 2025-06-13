@@ -1,10 +1,11 @@
 #include "Atom.hpp"
 #include "config.h"
 
-#include <stdexcept>
+#include <iostream>
+#include <map>
 
 namespace{
-            //原子種類と原子番号を関連づけるmap
+        //原子種類と原子番号を関連づけるmap
         std::map<std::string, int> atom_number_map = {
                 {"H",  1},
                 {"He", 2},

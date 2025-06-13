@@ -1,4 +1,3 @@
-// Atoms.hpp
 #ifndef ATOMS_HPP
 #define ATOMS_HPP
 
@@ -23,20 +22,27 @@ public:
     const torch::Tensor& masses() const { return masses_; }
     const torch::Tensor& box_size() const { return box_size_; }
     const torch::Device& device() const { return device_; }
-    std::size_t size() const { return n_atoms_; }
+    torch::Tensor size() const { return n_atoms_; }
 
     //セッタ
-    void set_positions(const torch::Tensor& positions) { positions_ = positions; }
-    void set_velocities(const torch::Tensor& velocities) { velocities_ = velocities; }
-    void set_forces(const torch::Tensor& forces) { forces_ = forces; }
-    void set_box_size(const torch::Tensor& box_size) { box_size_ = box_size; }
+    void set_positions(const torch::Tensor& positions);
+    void set_velocities(const torch::Tensor& velocities);
+    void set_forces(const torch::Tensor& forces);
+    void set_box_size(const torch::Tensor& box_size);
+    void set_potential_energy(const torch::Tensor& potential_energy);
 
     //物理量の計算
     torch::Tensor kinetic_energy() const;
     torch::Tensor potential_energy() const { return potential_energy_; }
-    void set_potential_energy(const torch::Tensor& pe) { potential_energy_ = pe; }
 
+    //その他
+    void positions_update(const torch::Tensor dt, torch::Tensor& box);
+    void velocities_update(const torch::Tensor dt);
+    void apply_pbc(); //周期境界条件の補正
+    void apply_pbc(torch::Tensor& box);
+    
 private:
+    //計算デバイス
     torch::Device device_;
 
     //各原子のデータ
@@ -47,7 +53,7 @@ private:
     torch::Tensor atomic_numbers_; 
 
     //系のデータ
-    std::size_t n_atoms_;
+    torch::Tensor n_atoms_;
     torch::Tensor potential_energy_;
     torch::Tensor box_size_;
 };

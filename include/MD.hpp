@@ -11,44 +11,34 @@
 class MD{
     public:
         //コンストラクタ
-        MD(T dt0, T cutoff0, T margin0, std::string data_path, std::string model_path);                         //xyzファイルから初期構造をロード
-        MD(T dt0, T cutoff0, T margin0, std::size_t num_atoms, std::string atomType, T box_size, std::string model_path);   //初期構造をランダムに作成
+        MD(torch::Tensor dt, torch::Tensor cutoff, torch::Tensor margin, std::string data_path, std::string model_path, torch::Device device = torch::kCPU);                                                 //xyzファイルから初期構造をロード
 
         //初期化
-        void init_vel_MB(const float float_targ, std::mt19937 &mt);    //原子の速度の初期化
+        void init_vel_MB(const float float_targ);                       //原子の速度の初期化
 
         //シミュレーション
-        void NVE(const T tsim);
-        void NVE_LJ(const T tsim);
-        void NVE_no_NL(const T tsim, const T cutoff);
+        void NVE(const float tsim);
 
     private:
-        //隣接リスト
-        void generate_NL();                                             //隣接リストの作成
-        void NL_check();                                                //隣接リストの確認
-
-        //系の更新
-        void velocity_update();                                         //速度の更新
-        void position_update();                                         //位置の更新
-
         //その他（補助用関数）
-        void print_energies(T t);                                       //結果の出力
+        void print_energies(long t);                                    //結果の出力
         void remove_drift();                                            //全体速度の除去
-        
-        void make_random(std::size_t num_atoms, std::string atomType, T box_size);  //ランダムな初期構造を作成
 
         //シミュレーション用
-        T dt;                                                           //時間刻み幅
-        T Lbox;
-        T Linv;
-        NeighbourList<T> neighbour_list;                                 //隣接リスト
+        torch::Tensor dt_;                                              //時間刻み幅
+        torch::Tensor Lbox_;                                            //シミュレーションセルのサイズ
+        torch::Tensor Linv_;                                            //セルのサイズの逆数
+        NeighbourList NL_;                                              //隣接リスト
 
         //MLP用変数
-        torch::jit::script::Module module;                              //モデルを格納する変数
+        torch::jit::script::Module module_;                              //モデルを格納する変数
 
         //系
-        Atoms<T> atoms;                                                 //原子
-        std::size_t N;                                                  //原子数
+        Atoms atoms_;                                                    //原子
+        torch::Tensor num_atoms_;                                        //原子数
+
+        //シミュレーションデバイス
+        torch::Device device_;
 };
 
 #endif

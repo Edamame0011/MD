@@ -3,8 +3,6 @@
 
 #include <string>
 #include <array>
-#include <iostream>
-#include <map>
 
 #include <torch/script.h>
 #include <torch/torch.h>

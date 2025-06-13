@@ -1,5 +1,6 @@
 #include "Atoms.hpp"
 #include "inference.hpp"
+#include "config.h"
 
 #include <vector>
 #include <array>
@@ -88,8 +89,8 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> inference::RadiusInterac
     const torch::Tensor Linv = 1 / Lbox;
 
     //読み込んだインデックスの原子から、距離を計算
-    const torch::Tensor source_pos = pos.index({NL.source_index});
-    const torch::Tensor target_pos = pos.index({NL.target_index});
+    const torch::Tensor source_pos = pos.index({NL.source_index()});
+    const torch::Tensor target_pos = pos.index({NL.target_index()});
 
     //距離の計算
     torch::Tensor diff_pos_vec = source_pos - target_pos;
@@ -97,12 +98,12 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> inference::RadiusInterac
 
     //実際のカットオフ距離でフィルタリング
     torch::Tensor dist2 = torch::sum(diff_pos_vec.pow(2), 1);
-    torch::Tensor cutoff2 = NL.cutoff.pow(2);
+    torch::Tensor cutoff2 = NL.cutoff().pow(2);
 
     torch::Tensor mask = torch::lt(dist2, cutoff2); //dist2 < cutoff2
 
-    torch::Tensor source_index = NL.source_index.index({mask});
-    torch::Tensor target_index = NL.target_index.index({mask});
+    torch::Tensor source_index = NL.source_index().index({mask});
+    torch::Tensor target_index = NL.target_index().index({mask});
     torch::Tensor distance_vectors = diff_pos_vec.index({mask});
 
     //インデックスを一つのtorch::Tensorにまとめる

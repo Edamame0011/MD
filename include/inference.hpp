@@ -4,13 +4,6 @@
 #include "Atoms.hpp"
 #include "NeighbourList.hpp"
 
-#include <vector>
-#include <array>
-#include <iostream>
-#include <string>
-#include <cctype>
-#include <algorithm>
-
 #include <torch/script.h>
 #include <torch/torch.h>
 
