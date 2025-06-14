@@ -2,23 +2,23 @@
 #include "load_file.hpp"
 #include "config.h"
 
-//グローバル変数
-std::vector<Atoms> structures;
-torch::jit::script::Module module;
-
-//デバイス
-const torch::Device device = torch::kCPU;
-const torch::TensorOptions options = torch::TensorOptions().device(device);
-
-//定数
-const torch::Tensor cutoff = torch::tensor(5.0, options.dtype(kRealType));
-const torch::Tensor Lbox = torch::tensor(10.585286, options.dtype(kRealType));
-
-//パス
-const std::string model_path = "../models/deployed_model.pt";
-const std::string data_path = "../data/multiple_structures.xyz";
-
 int main(){
+    //グローバル変数
+    std::vector<Atoms> structures;
+    torch::jit::script::Module module;
+
+    //デバイス
+    const torch::Device device = torch::kCPU;
+    const torch::TensorOptions options = torch::TensorOptions().device(device);
+
+    //定数
+    const torch::Tensor cutoff = torch::tensor(5.0, options.dtype(kRealType));
+    const torch::Tensor Lbox = torch::tensor(10.585286, options.dtype(kRealType));
+
+    //パス
+    const std::string model_path = "../models/deployed_model.pt";
+    const std::string data_path = "../data/multiple_structures.xyz";
+
     //モデルの読み込み
     module = inference::load_model(model_path);
 

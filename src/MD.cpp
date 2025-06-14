@@ -48,7 +48,7 @@ void MD::NVE(const float tsim) {
     torch::Tensor box = torch::zeros({num_atoms_.item<IntType>(), 3}, options.dtype(kIntType));
 
     long t = 0; //現在のステップ数
-    const long steps = tsim / t;    //総ステップ数
+    const long steps = tsim / dt_.item<float>();    //総ステップ数
     print_energies(t);
 
     while(t < steps){

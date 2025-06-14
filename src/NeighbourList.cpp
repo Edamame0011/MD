@@ -7,10 +7,10 @@ NeighbourList::NeighbourList(torch::Tensor cutoff, torch::Tensor margin, torch::
               : cutoff_(cutoff), margin_(margin), device_(device) 
 {
     //値が不正でないかのチェック
-    if(!(cutoff_.item<float>() > 0)){
+    if(cutoff_.item<float>() <= 0){
         throw std::invalid_argument("cutoff距離は正の数である必要があります。");
     }
-    if(!(margin_.item<float>() < 0)){
+    if(margin_.item<float>() <= 0){
         throw std::invalid_argument("margin距離は正の数である必要があります。");
     }
 }

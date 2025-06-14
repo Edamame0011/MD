@@ -148,11 +148,11 @@ void Atom::set_force(std::array<double, 3> force){
 
 void Atom::to(torch::Device device){
     device_ = device;
-    atomic_number_.to(device);
-    mass_.to(device);
-    position_.to(device);
-    velocity_.to(device);
-    force_.to(device);
+    atomic_number_ = atomic_number_.to(device);
+    mass_ = mass_.to(device);
+    position_ = position_.to(device);
+    velocity_ = velocity_.to(device);
+    force_ = force_.to(device);
 }
 
 torch::Tensor Atom::kinetic_energy(){
