@@ -46,7 +46,7 @@ void Atoms::set_forces(const torch::Tensor& forces) {
     forces_ = forces;
 }
 void Atoms::set_box_size(const torch::Tensor& box_size){
-    TORCH_CHECK(box_size.item<float>() > 0, "box_sizeは正の数である必要があります。");
+    TORCH_CHECK(box_size.item<float>() >= 0, "box_sizeは正の数である必要があります。");
     box_size_ = box_size; 
 }
 void Atoms::set_potential_energy(const torch::Tensor& potential_energy){

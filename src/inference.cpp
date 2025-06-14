@@ -73,7 +73,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> inference::RadiusInterac
 
     //距離ベクトルの作成
     //2つのインデックスの組み合わせからインデックスを取得
-    torch::Tensor distance_vectors = diff_position.index({source_index, target_index}); //(num_edges, 3)
+    torch::Tensor distance_vectors = - diff_position.index({source_index, target_index}); //(num_edges, 3)
 
     //各原子の原子番号を取得
     torch::Tensor x = atoms.atomic_numbers();
@@ -104,7 +104,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> inference::RadiusInterac
 
     torch::Tensor source_index = NL.source_index().index({mask});
     torch::Tensor target_index = NL.target_index().index({mask});
-    torch::Tensor distance_vectors = diff_pos_vec.index({mask});
+    torch::Tensor distance_vectors = - diff_pos_vec.index({mask});
 
     //インデックスを一つのtorch::Tensorにまとめる
     torch::Tensor edge_index = torch::stack({source_index, target_index});

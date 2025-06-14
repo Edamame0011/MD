@@ -13,8 +13,7 @@ int main(){
 
     //定数
     const torch::Tensor cutoff = torch::tensor(5.0, options.dtype(kRealType));
-    const torch::Tensor Lbox = torch::tensor(10.585286, options.dtype(kRealType));
-
+    
     //パス
     const std::string model_path = "../models/deployed_model.pt";
     const std::string data_path = "../data/multiple_structures.xyz";
@@ -23,7 +22,7 @@ int main(){
     module = inference::load_model(model_path);
 
     //構造の読み込み
-    load_file::load_xyz_structures(data_path, structures, true, device);
+    load_file::load_xyz_structures(data_path, structures, device);
 
     //一つ一つの構造に対して、エネルギーと力を計算
     for(std::size_t i = 0; i < structures.size(); i ++){
