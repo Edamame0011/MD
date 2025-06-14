@@ -3,15 +3,16 @@
 
 #include "Atoms.hpp"
 #include "NeighbourList.hpp"
+#include "config.h"
 
-#include <random>
 #include <torch/script.h>
 #include <torch/torch.h>
 
 class MD{
     public:
         //コンストラクタ
-        MD(torch::Tensor dt, torch::Tensor cutoff, torch::Tensor margin, std::string data_path, std::string model_path, torch::Device device = torch::kCPU);                                                 //xyzファイルから初期構造をロード
+        MD(torch::Tensor dt, torch::Tensor cutoff, torch::Tensor margin, std::string data_path, std::string model_path, torch::Device device = torch::kCPU); 
+        MD(RealType dt, RealType cutoff, RealType margin, std::string data_path, std::string model_path, torch::Device device = torch::kCPU); 
 
         //初期化
         void init_vel_MB(const float float_targ);                       //原子の速度の初期化

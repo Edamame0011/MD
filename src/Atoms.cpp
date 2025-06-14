@@ -5,6 +5,19 @@
 Atoms::Atoms(std::vector<Atom> atoms, torch::Device device) : device_(device)
 {
     std::size_t N = atoms.size();
+    n_atoms_ = torch::tensor(static_cast<int64_t>(N), torch::TensorOptions().device(device).dtype(kIntType));
+
+    //原子数が0の場合の処理
+    if (N == 0) {
+        auto tensor_options = torch::TensorOptions().device(device).dtype(kRealType);
+        positions_ = torch::empty({0, 3}, tensor_options);
+        velocities_ = torch::empty({0, 3}, tensor_options);
+        forces_ = torch::empty({0, 3}, tensor_options);
+        masses_ = torch::empty({0}, tensor_options);
+        atomic_numbers_ = torch::empty({0}, torch::TensorOptions().device(device).dtype(kIntType));
+        return; // これでコンストラクタの処理を終える
+    }
+
     std::vector<torch::Tensor> positions;
     std::vector<torch::Tensor> velocities;
     std::vector<torch::Tensor> forces;
@@ -19,7 +32,6 @@ Atoms::Atoms(std::vector<Atom> atoms, torch::Device device) : device_(device)
         atomic_numbers.push_back(atoms[i].atomic_number());
     }
     //torch::Tensorに変換
-    n_atoms_ = torch::tensor(static_cast<int64_t>(N), torch::TensorOptions().device(device).dtype(kIntType));
     positions_ = torch::stack(positions); 
     velocities_ = torch::stack(velocities); 
     forces_ = torch::stack(forces); 
@@ -84,7 +96,7 @@ void Atoms::apply_pbc(){
 void Atoms::apply_pbc(torch::Tensor& box){
     torch::Tensor box_indices = torch::floor(positions_ / box_size_ + 0.5);
     positions_ -= box_size_ * box_indices;
-    box += box_indices;
+    box += box_indices.to(kIntType);
 }
 
 //位置の更新
@@ -95,5 +107,6 @@ void Atoms::positions_update(const torch::Tensor dt, torch::Tensor& box){
 
 //速度の更新
 void Atoms::velocities_update(const torch::Tensor dt){
-    velocities_ += 0.5 * dt * forces_ / masses_;
+    //masses_.unsqueeze(1): (N, ) -> (N, 1)
+    velocities_ += 0.5 * dt * forces_ / masses_.unsqueeze(1);
 }

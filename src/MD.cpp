@@ -13,7 +13,7 @@ MD::MD(torch::Tensor dt, torch::Tensor cutoff, torch::Tensor margin, std::string
     module_.to(device);
 
     //初期構造のロード
-    load_file::load_xyz_atoms(data_path, atoms_, false, device);
+    load_file::load_xyz_atoms(data_path, atoms_, device);
     num_atoms_ = atoms_.size();
     Lbox_ = atoms_.box_size();
     Linv_ = 1.0 / Lbox_;
@@ -22,9 +22,16 @@ MD::MD(torch::Tensor dt, torch::Tensor cutoff, torch::Tensor margin, std::string
     atoms_.apply_pbc();
 }
 
+MD::MD(RealType dt, RealType cutoff, RealType margin, std::string data_path, std::string model_path, torch::Device device)
+   : MD(torch::tensor(dt, torch::TensorOptions().device(device).dtype(kRealType)), 
+        torch::tensor(cutoff, torch::TensorOptions().device(device).dtype(kRealType)), 
+        torch::tensor(margin, torch::TensorOptions().device(device).dtype(kRealType)), 
+        data_path, model_path, device) {}
+
+
 //速度の初期化
 void MD::init_vel_MB(const float float_targ){
-    torch::Tensor velocities = torch::randn({num_atoms_.item<long>(), 3}, torch::TensorOptions().device(device_).dtype(kRealType));
+    torch::Tensor velocities = torch::randn({num_atoms_.item<int64_t>(), 3}, torch::TensorOptions().device(device_).dtype(kRealType));
     velocities *= std::sqrt(float_targ);
 
     //全体速度の除去
@@ -48,7 +55,7 @@ void MD::NVE(const float tsim) {
     torch::Tensor box = torch::zeros({num_atoms_.item<IntType>(), 3}, options.dtype(kIntType));
 
     long t = 0; //現在のステップ数
-    const long steps = tsim / dt_.item<float>();    //総ステップ数
+    const long steps = tsim / dt_.item<RealType>();    //総ステップ数
     print_energies(t);
 
     while(t < steps){
@@ -75,8 +82,8 @@ void MD::print_energies(long t){
     RealType U = atoms_.potential_energy().item<RealType>();
     
     //時刻、1粒子当たりの運動エネルギー、1粒子当たりのポテンシャルエネルギー、1粒子当たりの全エネルギーを出力
-    std::cout << std::setprecision(15) << std::scientific << dt_ * t << "," 
-                                                          << K / num_atoms_ << "," 
-                                                          << U / num_atoms_ << "," 
-                                                          << (K + U) / num_atoms_ << std::endl;
+    std::cout << std::setprecision(15) << std::scientific << dt_.item<RealType>() * t << "," 
+                                                          << K / num_atoms_.item<RealType>() << "," 
+                                                          << U / num_atoms_.item<RealType>() << "," 
+                                                          << (K + U) / num_atoms_.item<RealType>() << std::endl;
 }

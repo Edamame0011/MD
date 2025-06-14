@@ -46,11 +46,11 @@ private:
     torch::Device device_;
 
     //各原子のデータ
-    torch::Tensor positions_;      
-    torch::Tensor velocities_;     
-    torch::Tensor forces_;         
-    torch::Tensor masses_;         
-    torch::Tensor atomic_numbers_; 
+    torch::Tensor positions_;   //(num_atoms, 3)
+    torch::Tensor velocities_;  //(num_atoms, 3)
+    torch::Tensor forces_;      //(num_atoms, 3)
+    torch::Tensor masses_;      //(num_atoms, )
+    torch::Tensor atomic_numbers_;  //(num_atoms, )
 
     //系のデータ
     torch::Tensor n_atoms_;
