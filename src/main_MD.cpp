@@ -19,8 +19,8 @@ int main(){
     MD md = MD(dt, cutoff, margin, data_path, model_path, device);
 
     //速度の初期化
-    md.init_vel_MB(1.0);
+    md.init_vel_MB(300.0);
 
     //シミュレーションの開始
-    md.NVE(1e+5);
+    md.NVE(1e+3);
 }

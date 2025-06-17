@@ -147,10 +147,10 @@ void inference::calc_energy_and_force_MLP(torch::jit::script::Module& module, At
     auto result = infer_from_tensor(module, x, edge_index, edge_weight);
 
     //力を各原子にセット
-    torch::Tensor forces = result[1].toTensor().to(kRealType);
+    torch::Tensor forces = result[1].toTensor().to(kRealType).detach(); //メモリ不足対策に、detach()して、計算グラフから切り離す。
     atoms.set_forces(forces);
 
     //ポテンシャルをセット
-    torch::Tensor energy = result[0].toTensor().to(kRealType);
+    torch::Tensor energy = result[0].toTensor().to(kRealType).detach(); //メモリ不足対策に、detach()して、計算グラフから切り離す。
     atoms.set_potential_energy(energy);
 }

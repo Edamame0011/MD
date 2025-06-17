@@ -263,6 +263,10 @@ void load_file::load_xyz_atoms(std::string data_path, Atoms& atoms, torch::Devic
 
     atoms = Atoms(atoms_vec, device);
     atoms.set_box_size(box_size);
+
+    //出力
+    std::cout << "単一構造を読み込みました。\n原子数：" << atoms.size().item<IntType>() << std::endl 
+              << "ボックスのサイズ：" << atoms.box_size().item<RealType>() << std::endl; 
 }
 
 //単一構造の読み込み
