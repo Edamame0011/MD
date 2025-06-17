@@ -20,6 +20,10 @@ MD::MD(torch::Tensor dt, torch::Tensor cutoff, torch::Tensor margin, std::string
 
     //周期境界条件の補正
     atoms_.apply_pbc();
+
+    //使用する定数のデバイスを移動しておく。
+    boltzmann_constant.to(device);
+    unit_conversion_factor.to(device);
 }
 
 MD::MD(RealType dt, RealType cutoff, RealType margin, std::string data_path, std::string model_path, torch::Device device)
@@ -30,9 +34,18 @@ MD::MD(RealType dt, RealType cutoff, RealType margin, std::string data_path, std
 
 
 //速度の初期化
-void MD::init_vel_MB(const float float_targ){
+void MD::init_vel_MB(const RealType float_targ){
+    //平均0、分散1のランダムな分布を作成
     torch::Tensor velocities = torch::randn({num_atoms_.item<int64_t>(), 3}, torch::TensorOptions().device(device_).dtype(kRealType));
-    velocities *= std::sqrt(float_targ);
+
+    //分散を√(k_B * T / m)にする。
+    //この時、(eV / amu) -> ((Å / fs) ^ 2)のために、unit_conversion_factorを掛ける。
+    torch::Tensor masses = atoms_.masses();
+    torch::Tensor temp = torch::tensor(float_targ, torch::TensorOptions().dtype(kRealType).device(device_));
+    torch::Tensor sigma = torch::sqrt((boltzmann_constant * float_targ * unit_conversion_factor) / masses);
+    //velocitiesにsigmaを掛けることで分散を調節。
+    //この時、velocities (N, 3)とsigma (N, )を計算するために、sigma (N, ) -> (N, 1)
+    velocities *= sigma.unsqueeze(1);
 
     //全体速度の除去
     torch::Tensor drift_velocity = torch::mean(velocities, 0);
