@@ -58,6 +58,9 @@ void MD::init_vel_MB(const RealType float_targ){
 void MD::NVE(const float tsim) {
     torch::TensorOptions options = torch::TensorOptions().device(device_);
 
+    //ログの見出しを出力しておく
+    std::cout << "time (s)、kinetic energy (eV)、potential energy (eV)、total energy (eV)" << std::endl;
+
     //NLの作成
     NL_.generate(atoms_);
 
@@ -96,7 +99,7 @@ void MD::print_energies(long t){
     
     //時刻、1粒子当たりの運動エネルギー、1粒子当たりのポテンシャルエネルギー、1粒子当たりの全エネルギーを出力
     std::cout << std::setprecision(15) << std::scientific << dt_.item<RealType>() * t << "," 
-                                                          << K / num_atoms_.item<RealType>() << "," 
-                                                          << U / num_atoms_.item<RealType>() << "," 
-                                                          << (K + U) / num_atoms_.item<RealType>() << std::endl;
+                                                          << K << "," 
+                                                          << U << "," 
+                                                          << K + U << std::endl;
 }

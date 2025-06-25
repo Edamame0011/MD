@@ -18,7 +18,7 @@ Atoms::Atoms(std::vector<Atom> atoms, torch::Device device) : device_(device)
         forces_ = torch::empty({0, 3}, tensor_options);
         masses_ = torch::empty({0}, tensor_options);
         atomic_numbers_ = torch::empty({0}, torch::TensorOptions().device(device).dtype(kIntType));
-        return; // これでコンストラクタの処理を終える
+        return;
     }
 
     std::vector<torch::Tensor> positions;

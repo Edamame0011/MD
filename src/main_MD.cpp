@@ -7,7 +7,7 @@ int main(){
     torch::TensorOptions options = torch::TensorOptions().device(device);
 
     //定数
-    const RealType dt = 1e-3;
+    const RealType dt = 0.005;
     const RealType cutoff = 5.0;
     const RealType margin = 1.0;
 
@@ -22,5 +22,5 @@ int main(){
     md.init_vel_MB(300.0);
 
     //シミュレーションの開始
-    md.NVE(1e+3);
+    md.NVE(500);
 }

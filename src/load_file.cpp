@@ -64,6 +64,10 @@ void load_file::load_xyz_structures(std::string data_path, std::vector<Atoms>& s
     int j = 0;  //一つの構造についての行数を表す変数
 
     while(std::getline(file, line)){
+        //空白の行をスキップ
+        if (line.empty() || line.find_first_not_of(" \t\n\v\f\r") == std::string::npos) {
+            continue;
+        }
         //lineが数値かどうかを判定
         if(std::all_of(line.cbegin(), line.cend(), isdigit)){
             num_atoms = std::stoi(line);
