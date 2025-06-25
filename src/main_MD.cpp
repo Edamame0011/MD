@@ -4,7 +4,6 @@
 int main(){
     //デバイス
     torch::Device device = torch::kCPU;
-    torch::TensorOptions options = torch::TensorOptions().device(device);
 
     //定数
     const RealType dt = 0.005;

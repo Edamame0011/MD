@@ -59,7 +59,7 @@ void MD::NVE(const float tsim) {
     torch::TensorOptions options = torch::TensorOptions().device(device_);
 
     //ログの見出しを出力しておく
-    std::cout << "time (s)、kinetic energy (eV)、potential energy (eV)、total energy (eV)" << std::endl;
+    std::cout << "time (fs)、kinetic energy (eV)、potential energy (eV)、total energy (eV)" << std::endl;
 
     //NLの作成
     NL_.generate(atoms_);
