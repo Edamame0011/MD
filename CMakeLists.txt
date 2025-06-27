@@ -17,7 +17,7 @@ find_package(Torch REQUIRED PATHS ${Torch_DIR})
 
 # ソースファイルのリスト
 set(SOURCES
-    src/main_MD_from_grad.cpp
+    src/main_MD.cpp
     src/MD.cpp
     src/Atom.cpp
     src/Atoms.cpp
