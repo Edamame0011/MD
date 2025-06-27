@@ -6,7 +6,7 @@ int main(){
     torch::Device device = torch::kCPU;
 
     //定数
-    const RealType dt = 0.005;
+    const RealType dt = 0.5;
     const RealType cutoff = 5.0;
     const RealType margin = 1.0;
 

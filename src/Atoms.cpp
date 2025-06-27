@@ -8,7 +8,7 @@ Atoms::Atoms(std::vector<Atom> atoms, torch::Device device) : device_(device)
     n_atoms_ = torch::tensor(static_cast<int64_t>(N), torch::TensorOptions().device(device).dtype(kIntType));
 
     //使用する定数のデバイスを移動
-    unit_conversion_factor.to(device);
+    conversion_factor.to(device);
 
     //原子数が0の場合の処理
     if (N == 0) {
@@ -87,7 +87,7 @@ torch::Tensor Atoms::kinetic_energy() const {
     auto vel_sq = torch::pow(velocities_, 2);
     auto sum_vel_sq = torch::sum(vel_sq, 1);
     auto kinetic_energies = 0.5 * masses_.squeeze() * sum_vel_sq;
-    return torch::sum(kinetic_energies) / unit_conversion_factor;
+    return torch::sum(kinetic_energies) / conversion_factor;
 }
 
 //周期境界条件の補正
@@ -111,6 +111,6 @@ void Atoms::positions_update(const torch::Tensor dt, torch::Tensor& box){
 //速度の更新
 void Atoms::velocities_update(const torch::Tensor dt){
     //masses_.unsqueeze(1): (N, ) -> (N, 1)
-    //単位変換 (eV / amu) -> ((Å / fs)^2)
-    velocities_ += 0.5 * dt * (forces_ / masses_.unsqueeze(1)) * unit_conversion_factor;
+    //単位変換 (eV / Å・u) -> ((Å / (fs^2))
+    velocities_ += 0.5 * dt * (forces_ / masses_.unsqueeze(1)) * conversion_factor;
 }

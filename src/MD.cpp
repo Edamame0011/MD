@@ -23,7 +23,7 @@ MD::MD(torch::Tensor dt, torch::Tensor cutoff, torch::Tensor margin, std::string
 
     //使用する定数のデバイスを移動しておく。
     boltzmann_constant.to(device);
-    unit_conversion_factor.to(device);
+    conversion_factor.to(device);
 }
 
 MD::MD(RealType dt, RealType cutoff, RealType margin, std::string data_path, std::string model_path, torch::Device device)
@@ -39,10 +39,10 @@ void MD::init_vel_MB(const RealType float_targ){
     torch::Tensor velocities = torch::randn({num_atoms_.item<int64_t>(), 3}, torch::TensorOptions().device(device_).dtype(kRealType));
 
     //分散を√(k_B * T / m)にする。
-    //この時、(eV / amu) -> ((Å / fs) ^ 2)のために、unit_conversion_factorを掛ける。
+    //この時、(eV / amu) -> ((Å / fs) ^ 2)
     torch::Tensor masses = atoms_.masses();
     torch::Tensor temp = torch::tensor(float_targ, torch::TensorOptions().dtype(kRealType).device(device_));
-    torch::Tensor sigma = torch::sqrt((boltzmann_constant * float_targ * unit_conversion_factor) / masses);
+    torch::Tensor sigma = torch::sqrt((boltzmann_constant * float_targ * conversion_factor) / masses);
     //velocitiesにsigmaを掛けることで分散を調節。
     //この時、velocities (N, 3)とsigma (N, )を計算するために、sigma (N, ) -> (N, 1)
     velocities *= sigma.unsqueeze(1);

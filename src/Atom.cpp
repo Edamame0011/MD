@@ -74,7 +74,7 @@ Atom::Atom(std::string type, torch::Tensor position, torch::Tensor velocity, tor
         mass_ = torch::tensor(atom_mass_map[type_], options.dtype(kRealType));
 
         //使用する定数のデバイスを移動させておく。
-        unit_conversion_factor.to(device);
+        conversion_factor.to(device);
     }
 
 Atom::Atom(std::string type, std::array<double, 3>& position, std::array<double, 3>& velocity, std::array<double, 3>& force, torch::Device device)
@@ -162,6 +162,6 @@ torch::Tensor Atom::kinetic_energy(){
     torch::Tensor kinetic_energy = 0.5 * mass_ * ( velocity_[0] * velocity_[0] + 
                                                    velocity_[1] * velocity_[1] + 
                                                    velocity_[2] * velocity_[2]);
-    //1/2 mv^2 (amu * (Å / fs) ^ 2) -> (eV)
-    return kinetic_energy / unit_conversion_factor;
+    //1/2 mv^2 (u * (Å / fs) ^ 2) -> (eV)
+    return kinetic_energy / conversion_factor;
 }
