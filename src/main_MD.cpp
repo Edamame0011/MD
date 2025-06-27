@@ -6,7 +6,7 @@ int main(){
     torch::Device device = torch::kCPU;
 
     //定数
-    const RealType dt = 0.005;
+    const RealType dt = 0.5;
     const RealType cutoff = 5.0;
     const RealType margin = 1.0;
 
@@ -21,5 +21,5 @@ int main(){
     md.init_vel_MB(300.0);
 
     //シミュレーションの開始
-    md.NVE(500);
+    md.NVE(2e+3);
 }
