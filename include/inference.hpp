@@ -13,7 +13,8 @@ namespace inference{
     std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> RadiusInteractionGraph(Atoms& atoms, torch::Tensor cutoff);                                       //cutoff距離以内にある原子のペアを探す
     std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> RadiusInteractionGraph(Atoms& atoms, NeighbourList NL);                                           //隣接リストを使用する場合はこっち
     void calc_energy_and_force_MLP(torch::jit::script::Module& module, Atoms& atoms, torch::Tensor cutoff);                                                   //一つの構造に対して、エネルギーと力を計算
-    void calc_energy_and_force_MLP(torch::jit::script::Module& module, Atoms& atoms, NeighbourList NL);                                                       //隣接リストを使用する場合はこっち
+    void calc_energy_and_force_MLP(torch::jit::script::Module& module, Atoms& atoms, NeighbourList NL);
+    void infer_energy_with_MLP_and_clac_force(torch::jit::script::Module& module, Atoms& atoms, NeighbourList NL);                                                       //隣接リストを使用する場合はこっち
 }
 
 #endif

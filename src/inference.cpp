@@ -154,3 +154,34 @@ void inference::calc_energy_and_force_MLP(torch::jit::script::Module& module, At
     torch::Tensor energy = result[0].toTensor().to(kRealType).detach(); //メモリ不足対策に、detach()して、計算グラフから切り離す。
     atoms.set_potential_energy(energy);
 }
+
+//エネルギーのみをMLPを用いて計算し、力をその微分から求める
+void inference::infer_energy_with_MLP_and_clac_force(torch::jit::script::Module& module, Atoms& atoms, NeighbourList NL){
+    torch::Tensor x, edge_index, edge_weight;
+    std::tie(x, edge_index, edge_weight) = RadiusInteractionGraph(atoms, NL);
+    //後で微分を使うためedge_weightのrequires_gradをtrueにする
+    edge_weight.requires_grad_(true);
+    //推論
+    auto result = infer_from_tensor(module, x, edge_index, edge_weight);
+    //ポテンシャルを取得
+    torch::Tensor energy = result[0].toTensor().to(kRealType);
+    
+    //力を計算
+    //torch::autograd::grad()の引数、戻り値はtorch::TensorList
+    torch::Tensor diff_ij = torch::autograd::grad({energy}, {edge_weight})[0];
+    //(N, 3)のゼロテンソルを作成
+    torch::Tensor force_i = torch::zeros({x.size(0), 3}, torch::TensorOptions().dtype(kRealType));
+    torch::Tensor force_j = torch::zeros({x.size(0), 3}, torch::TensorOptions().dtype(kRealType));
+    //diff_ijを加算
+    force_i.index_add_(0, edge_index[0], diff_ij);
+    force_j.index_add_(0, edge_index[1], -diff_ij);
+
+    torch::Tensor force = force_i + force_j;
+
+    energy = energy.detach();
+    force = force.detach();
+
+    //力とポテシャルを原子にセット
+    atoms.set_potential_energy(energy);
+    atoms.set_forces(force);
+}

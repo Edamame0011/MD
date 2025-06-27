@@ -91,6 +91,42 @@ void MD::NVE(const float tsim) {
     }
 }
 
+void MD::NVE_from_grad(const float tsim){
+    torch::TensorOptions options = torch::TensorOptions().device(device_);
+
+    //ログの見出しを出力しておく
+    std::cout << "time (fs)、kinetic energy (eV)、potential energy (eV)、total energy (eV)" << std::endl;
+
+    //NLの作成
+    NL_.generate(atoms_);
+
+    //モデルの推論
+    inference::calc_energy_and_force_MLP(module_, atoms_, NL_);
+
+    //周期境界条件のもとで、何個目の箱のミラーに位置しているのかを保存する変数 (N, 3)
+    torch::Tensor box = torch::zeros({num_atoms_.item<IntType>(), 3}, options.dtype(kIntType));
+
+    long t = 0; //現在のステップ数
+    const long steps = tsim / dt_.item<RealType>();    //総ステップ数
+    print_energies(t);
+
+    while(t < steps){
+        atoms_.velocities_update(dt_);      //速度の更新（1回目）
+        atoms_.positions_update(dt_, box);  //位置の更新
+        NL_.update(atoms_);                 //NLの確認と更新
+        inference::infer_energy_with_MLP_and_clac_force(module_, atoms_, NL_); //力の更新
+        atoms_.velocities_update(dt_);      //速度の更新（2回目）
+
+        t ++;
+
+        //出力
+        //とりあえず100ステップごとに出力
+        if(t % 100 == 0){
+            print_energies(t);
+        }
+    }
+}
+
 //-----補助用関数-----
 //エネルギーの出力
 void MD::print_energies(long t){
