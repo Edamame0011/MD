@@ -1,5 +1,5 @@
 #include "inference.hpp"
-#include "load_file.hpp"
+#include "xyz.hpp"
 #include "config.h"
 
 int main(){
@@ -22,7 +22,7 @@ int main(){
     module = inference::load_model(model_path);
 
     //構造の読み込み
-    load_file::load_xyz_atoms(data_path, atoms, device);
+    xyz::load_atoms(data_path, atoms, device);
 
     //構造に対して、エネルギーと力を計算
     inference::calc_energy_and_force_MLP(module, atoms, cutoff);

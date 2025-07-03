@@ -11,7 +11,7 @@ int main(){
     const RealType margin = 1.0;
 
     //パス
-    const std::string data_path = "../data/initial_structure.xyz";
+    const std::string data_path = "../data/diamond_structure_2.xyz";
     const std::string model_path = "../models/deployed_model.pt";
 
     //MDオブジェクトの実体化

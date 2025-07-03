@@ -22,7 +22,7 @@ set(SOURCES
     src/Atom.cpp
     src/Atoms.cpp
     src/inference.cpp
-    src/load_file.cpp
+    src/xyz.cpp
     src/NeighbourList.cpp
 )
 

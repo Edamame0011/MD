@@ -4,56 +4,6 @@
 #include <iostream>
 #include <map>
 
-namespace{
-        //原子種類と原子番号を関連づけるmap
-        std::map<std::string, int> atom_number_map = {
-                {"H",  1},
-                {"He", 2},
-                {"Li", 3},
-                {"Be", 4},
-                {"B",  5},
-                {"C",  6},
-                {"N",  7},
-                {"O",  8},
-                {"F",  9},
-                {"Ne", 10},
-                {"Na", 11},
-                {"Mg", 12},
-                {"Al", 13},
-                {"Si", 14},
-                {"P",  15},
-                {"S",  16},
-                {"Cl", 17},
-                {"Ar", 18},
-                {"K",  19},
-                {"Ca", 20}
-            };
-
-        //原子種類と原子質量を関連づけるmap
-        std::map<std::string, double> atom_mass_map = {
-                {"H",   1.0080},
-                {"He",  4.0026},
-                {"Li",  6.94},
-                {"Be",  9.0122},
-                {"B",   10.81},
-                {"C",   12.011},
-                {"N",   14.007},
-                {"O",   15.999},
-                {"F",   18.998},
-                {"Ne",  20.180},
-                {"Na",  22.990},
-                {"Mg",  24.305},
-                {"Al",  26.982},
-                {"Si",  28.0855},
-                {"P",   30.974},
-                {"S",   32.06},
-                {"Cl",  35.45},
-                {"Ar",  39.95},
-                {"K",   39.098},
-                {"Ca",  40.078}
-            };
-}
-
 //コンストラクタ
 Atom::Atom(std::string type, torch::Tensor position, torch::Tensor velocity, torch::Tensor force, torch::Device device)
     : type_(std::move(type)), device_(device)

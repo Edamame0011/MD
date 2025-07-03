@@ -1,4 +1,4 @@
-#include "load_file.hpp"
+#include "xyz.hpp"
 #include "Atoms.hpp"
 #include "config.h"
 
@@ -47,7 +47,7 @@ namespace {
 }
 
 //複数構造の読み込み
-void load_file::load_xyz_structures(std::string data_path, std::vector<Atoms>& structures, torch::Device device){
+void xyz::load_structures(std::string data_path, std::vector<Atoms>& structures, torch::Device device){
     std::vector<Atom> atoms_vector;
     torch::Tensor box_size;
 
@@ -137,7 +137,7 @@ void load_file::load_xyz_structures(std::string data_path, std::vector<Atoms>& s
 }
 
 //extxyzフォーマットでない時
-void load_file::load_xyz_structures(std::string data_path, std::vector<Atoms>& structures, float Lbox, torch::Device device){
+void xyz::load_structures(std::string data_path, std::vector<Atoms>& structures, float Lbox, torch::Device device){
     std::vector<Atom> atoms_vector;
     torch::Tensor box_size;
 
@@ -212,7 +212,7 @@ void load_file::load_xyz_structures(std::string data_path, std::vector<Atoms>& s
 }
 
 //単一構造の読み込み
-void load_file::load_xyz_atoms(std::string data_path, Atoms& atoms, torch::Device device){
+void xyz::load_atoms(std::string data_path, Atoms& atoms, torch::Device device){
     std::vector<Atom> atoms_vec;
     std::ifstream file(data_path);
     
@@ -274,7 +274,7 @@ void load_file::load_xyz_atoms(std::string data_path, Atoms& atoms, torch::Devic
 }
 
 //単一構造の読み込み
-void load_file::load_xyz_atoms(std::string data_path, Atoms& atoms, float Lbox, torch::Device device){
+void xyz::load_atoms(std::string data_path, Atoms& atoms, float Lbox, torch::Device device){
     std::vector<Atom> atoms_vec;
     std::ifstream file(data_path);
     
@@ -317,4 +317,44 @@ void load_file::load_xyz_atoms(std::string data_path, Atoms& atoms, float Lbox, 
 
     atoms = Atoms(atoms_vec, device);
     atoms.set_box_size(box_size);
+}
+
+//構造をxyzファイルに保存
+void xyz::save_atoms(std::string data_path, Atoms atoms){
+    //ファイルを開く
+    std::ofstream output(data_path);
+
+    //開けているか確認
+    if(!output.is_open()){
+        throw std::runtime_error("出力ファイルを開けませんでした。");
+    }
+
+    //書き込み
+    //1行目は原子数
+    IntType n_atoms = atoms.size().item<IntType>();
+    RealType box_size = atoms.box_size().item<RealType>();
+    output << n_atoms << std::endl;
+    //2行目はコメント行
+    //Lattice
+    output << "Lattice=\"" << box_size << " " << 0.0 << " " << 0.0 << " " 
+                           << 0.0 << " " << box_size << " " << 0.0 << " " 
+                           << 0.0 << " " << 0.0 << " " << box_size << "\"" << " ";
+    //Properties
+    output << "Properties=species:S:1:pos:R:3:force:R:3" << " ";
+    //energy
+    output << "energy=" << atoms.potential_energy().item<RealType>() << " ";
+    //pbc
+    output << "pbc=\"T T T\"";
+
+    output << std::endl;
+
+    //3行目以降に原子の種類と座標と力
+    for(IntType i = 0; i < n_atoms; i ++){
+        output << atoms.types()[i] << " "
+               << atoms.positions()[i][0] << " " << atoms.positions()[i][1] << " " << atoms.positions()[i][2] << " "
+               << atoms.forces()[i][0] << " " << atoms.forces()[i][1] << " " << atoms.forces()[i][2] << std::endl;
+    }
+
+    //ファイルを閉じる
+    output.close();
 }

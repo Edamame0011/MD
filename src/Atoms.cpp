@@ -18,6 +18,7 @@ Atoms::Atoms(std::vector<Atom> atoms, torch::Device device) : device_(device)
         forces_ = torch::empty({0, 3}, tensor_options);
         masses_ = torch::empty({0}, tensor_options);
         atomic_numbers_ = torch::empty({0}, torch::TensorOptions().device(device).dtype(kIntType));
+        types_ = std::vector<std::string>();
         return;
     }
 
@@ -26,6 +27,15 @@ Atoms::Atoms(std::vector<Atom> atoms, torch::Device device) : device_(device)
     std::vector<torch::Tensor> forces;
     std::vector<torch::Tensor> masses;
     std::vector<torch::Tensor> atomic_numbers;
+    std::vector<std::string> types;
+
+    positions.reserve(N);
+    velocities.reserve(N);
+    forces.reserve(N);
+    masses.reserve(N);
+    atomic_numbers.reserve(N);
+    types.reserve(N);
+
     for(std::size_t i = 0; i < N; i ++){
         atoms[i].to(device_);
         positions.push_back(atoms[i].position());
@@ -33,6 +43,7 @@ Atoms::Atoms(std::vector<Atom> atoms, torch::Device device) : device_(device)
         forces.push_back(atoms[i].force());
         masses.push_back(atoms[i].mass());
         atomic_numbers.push_back(atoms[i].atomic_number());
+        types.push_back(atoms[i].type());
     }
     //torch::Tensorに変換
     positions_ = torch::stack(positions); 
@@ -40,6 +51,7 @@ Atoms::Atoms(std::vector<Atom> atoms, torch::Device device) : device_(device)
     forces_ = torch::stack(forces); 
     masses_ = torch::stack(masses);
     atomic_numbers_ = torch::stack(atomic_numbers);
+    types_ = types;
 }
 
 Atoms::Atoms(torch::Device device) : Atoms(std::vector<Atom>(), device)

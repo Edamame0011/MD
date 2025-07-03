@@ -1,5 +1,5 @@
 #include "inference.hpp"
-#include "load_file.hpp"
+#include "xyz.hpp"
 #include "config.h"
 
 int main(){
@@ -22,7 +22,7 @@ int main(){
     module = inference::load_model(model_path);
 
     //構造の読み込み
-    load_file::load_xyz_structures(data_path, structures, device);
+    xyz::load_structures(data_path, structures, device);
 
     //一つ一つの構造に対して、エネルギーと力を計算
     for(std::size_t i = 0; i < structures.size(); i ++){

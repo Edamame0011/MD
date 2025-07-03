@@ -22,7 +22,8 @@ public:
     const torch::Tensor& masses() const { return masses_; }
     const torch::Tensor& box_size() const { return box_size_; }
     const torch::Device& device() const { return device_; }
-    torch::Tensor size() const { return n_atoms_; }
+    const torch::Tensor& size() const { return n_atoms_; }
+    const std::vector<std::string>& types() const { return types_; }
 
     //セッタ
     void set_positions(const torch::Tensor& positions);
@@ -51,6 +52,7 @@ private:
     torch::Tensor forces_;      //(num_atoms, 3)
     torch::Tensor masses_;      //(num_atoms, )
     torch::Tensor atomic_numbers_;  //(num_atoms, )
+    std::vector<std::string> types_;
 
     //系のデータ
     torch::Tensor n_atoms_;

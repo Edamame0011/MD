@@ -1,6 +1,6 @@
 #include "MD.hpp"
 
-#include "load_file.hpp"
+#include "xyz.hpp"
 #include "inference.hpp"
 #include "config.h"
 
@@ -13,7 +13,7 @@ MD::MD(torch::Tensor dt, torch::Tensor cutoff, torch::Tensor margin, std::string
     module_.to(device);
 
     //初期構造のロード
-    load_file::load_xyz_atoms(data_path, atoms_, device);
+    xyz::load_atoms(data_path, atoms_, device);
     num_atoms_ = atoms_.size();
     Lbox_ = atoms_.box_size();
     Linv_ = 1.0 / Lbox_;
