@@ -175,60 +175,112 @@ void MD::NVT(const RealType tsim, ThermostatType& Thermostat, const IntType step
     }
 }
 
-//NVTシミュレーション（logスケールで保存）
+// NVTシミュレーション（logスケールで保存 + 1 decade あたり N 点 + 各点で M ステップ連続保存, 連続保存時の間隔も指定できる）
+// decadeはステップ数で判定
 template <typename ThermostatType>
-void MD::NVT(const RealType tsim, ThermostatType& Thermostat, const std::string log, const bool is_save) {
-    if(log != "log") {
-        return; 
+void MD::NVT(const RealType tsim,
+             ThermostatType& Thermostat,
+             const std::string log,
+             const bool is_save,
+             const IntType N_per_decade,
+             const IntType M_burst,
+             const IntType interval_burst)
+{
+    if (log != "log") {
+        return;
     }
 
+    // 熱浴のセットアップ
     Thermostat.setup(atoms_);
 
-    //ログの見出しを出力しておく
-    std::cout << "time (fs)、kinetic energy (eV)、potential energy (eV)、total energy (eV)、temperature (K)" << std::endl;
+    // ログの見出しを出力
+    std::cout << "time (fs)、kinetic energy (eV)、potential energy (eV)、"
+                 "total energy (eV)、temperature (K)" << std::endl;
 
-    //NLの作成
+    // NL の作成
     NL_.generate(atoms_);
 
-    //モデルの推論
+    // モデルの推論
     inference::calc_energy_and_force_MLP(module_, atoms_, NL_);
+
+    // 初期状態を 1 回出力（run の t=0 に相当）
     print_energies();
-    if (is_save) xyz::save_unwrapped_atoms(traj_path_, atoms_, box_);
-
-    const auto logbin = std::pow(10.0, 1.0 / 9);
-    int counter = 5;
-    auto checker = 1e-3 * std::pow(logbin, counter);
-
-    double current_time = static_cast<double>(dt_real_) * static_cast<double>(t_);
-
-    //現在の時間に合わせてcheckerを更新
-    while (checker <= current_time) {
-        checker *= logbin;
+    if (is_save) {
+        xyz::save_unwrapped_atoms(traj_path_, atoms_, box_);
     }
 
-    if(is_save) {
-        NVT_loop(tsim, Thermostat, [this, &checker, logbin]() {
-            if(static_cast<double>(dt_real_) * static_cast<double>(t_) > checker) [[unlikely]] {
-                checker *= logbin;
-                print_energies();
+    // ---- 対数サンプリング + バースト設定（run 相対ステップで管理） ----
+    const int N = (N_per_decade > 0) ? static_cast<int>(N_per_decade) : 1;
+    const int M = (M_burst > 0) ? static_cast<int>(M_burst) : 0;
+    const int interval = (interval_burst > 0) ? static_cast<int>(interval_burst) : 1;
+    const double r = std::pow(10.0, 1.0 / static_cast<double>(N));
 
+    const IntType t0 = t_;                  // run 開始時の通算ステップ
+    IntType next_step_rel = static_cast<IntType>(1);  // 次のログ点（run 相対ステップ）
+
+    int burst_samples_left = 0; // 残りサンプル点数（M点）
+    int burst_wait = 0;         // 次の出力までの待ちステップ
+
+    auto callback = [this, r, t0, &next_step_rel,
+                     &burst_samples_left, &burst_wait,
+                     M, interval, is_save]() {
+
+        // NVT_loop では step() の後に t_++ して output_action() を呼ぶので、
+        // callback が呼ばれる時点の run 相対ステップは 1,2,3,... になる。
+        const IntType s_rel = t_ - t0;
+
+        // (A) ログ点の進行（バースト中でも next_step_rel を未来へ進める：スキップ扱い）
+        bool hit_log_point = false;
+        if (s_rel >= next_step_rel) [[unlikely]] {
+            hit_log_point = true;
+            while (s_rel >= next_step_rel) {
+                const double cand_d = std::ceil(static_cast<double>(next_step_rel) * r);
+                const IntType cand = static_cast<IntType>(cand_d);
+                next_step_rel = std::max(next_step_rel + static_cast<IntType>(1), cand);
+            }
+        }
+
+        // (B) ログ点に到達し、かつバースト外ならバースト開始（到達ステップを1点目として即出力）
+        if (hit_log_point && burst_samples_left == 0 && M > 0) {
+            burst_samples_left = M;
+            burst_wait = 0;
+
+            // 1点目（到達ステップ）を即出力
+            print_energies();
+            if (is_save) {
                 xyz::save_unwrapped_atoms(traj_path_, atoms_, box_);
             }
-        });
-    }
-    else {
-        NVT_loop(tsim, Thermostat, [this, &checker, logbin]() {
-            if(static_cast<double>(dt_real_) * static_cast<double>(t_) > checker) [[unlikely]] {
-                checker *= logbin;
+            --burst_samples_left;
+
+            burst_wait = (burst_samples_left > 0) ? interval : 0;
+        }
+
+        // (C) バースト中の interval 出力
+        if (burst_samples_left > 0) {
+            if (burst_wait == 0) {
                 print_energies();
+                if (is_save) {
+                    xyz::save_unwrapped_atoms(traj_path_, atoms_, box_);
+                }
+                --burst_samples_left;
+                burst_wait = (burst_samples_left > 0) ? interval : 0;
+            } else {
+                --burst_wait;
             }
-        });
-    }
+        }
+    };
+
+    NVT_loop(tsim, Thermostat, callback);
 }
+
+
 
 //温度を変化させながらシミュレーション
 template <typename ThermostatType>
 void MD::NVT_anneal(const RealType cooling_rate, ThermostatType& Thermostat, const RealType targ_temp, const IntType step, const bool is_save) {
+    // ★ ここで現在の運動温度を取得して temp_ に同期
+    temp_ = atoms_.temperature().item<RealType>();
+    Thermostat.set_temp(temp_);
     Thermostat.setup(atoms_);
 
     //NLの作成
@@ -261,56 +313,101 @@ void MD::NVT_anneal(const RealType cooling_rate, ThermostatType& Thermostat, con
     }
 }
 
-//NVTシミュレーション（logスケールで保存）
+// 温度変化NVTシミュレーション（logスケールで保存 + 1 decade あたり N 点 + 各点で M ステップ連続保存）
 template <typename ThermostatType>
-void MD::NVT_anneal(const RealType cooling_rate, ThermostatType& Thermostat, const RealType targ_temp, const std::string log, const bool is_save) {
-    if(log != "log") {
-        return; 
+void MD::NVT_anneal(const RealType cooling_rate,
+                    ThermostatType& Thermostat,
+                    const RealType targ_temp,
+                    const std::string log,
+                    const bool is_save,
+                    const IntType N_per_decade,
+                    const IntType M_burst,
+                    const IntType interval_burst)
+{
+    if (log != "log") {
+        return;
     }
 
+    // 現在の運動温度を取得して temp_ に同期
+    temp_ = atoms_.temperature().item<RealType>();
+    Thermostat.set_temp(temp_);
     Thermostat.setup(atoms_);
 
-    //NLの作成
+    // NL の作成
     NL_.generate(atoms_);
 
-    //モデルの推論
+    // MLP 推論
     inference::calc_energy_and_force_MLP(module_, atoms_, NL_);
 
-    //ログの見出しを出力しておく
-    std::cout << "time (fs)、kinetic energy (eV)、potential energy (eV)、total energy (eV)、temperature (K)" << std::endl;
+    // ログヘッダ
+    std::cout << "time (fs)、kinetic energy (eV)、potential energy (eV)、"
+                 "total energy (eV)、temperature (K)" << std::endl;
 
+    // 初期出力（run の t=0）
     print_energies();
-    if (is_save) xyz::save_unwrapped_atoms(traj_path_, atoms_, box_);
-
-    const auto logbin = std::pow(10.0, 1.0 / 9);
-    int counter = 5;
-    auto checker = 1e-3 * std::pow(logbin, counter);
-
-    double current_time = static_cast<double>(dt_real_) * static_cast<double>(t_);
-
-    //現在の時間に合わせてcheckerを更新
-    while (checker <= current_time) {
-        checker *= logbin;
+    if (is_save) {
+        xyz::save_unwrapped_atoms(traj_path_, atoms_, box_);
     }
 
-    if(is_save) {
-        NVT_anneal_loop(cooling_rate, Thermostat, targ_temp, [this, &checker, logbin]() {
-            if(static_cast<double>(dt_real_) * static_cast<double>(t_) > checker) [[unlikely]] {
-                checker *= logbin;
-                print_energies();
+    // ---- 対数サンプリング + バースト設定（run 相対ステップで管理） ----
+    const int N = (N_per_decade > 0) ? static_cast<int>(N_per_decade) : 1;
+    const int M = (M_burst > 0) ? static_cast<int>(M_burst) : 0;
+    const int interval = (interval_burst > 0) ? static_cast<int>(interval_burst) : 1;
+    const double r = std::pow(10.0, 1.0 / static_cast<double>(N));
 
+    const IntType t0 = t_;                  // run 開始時の通算ステップ
+    IntType next_step_rel = static_cast<IntType>(1);
+
+    int burst_samples_left = 0;
+    int burst_wait = 0;
+
+    auto callback = [this, r, t0, &next_step_rel,
+                     &burst_samples_left, &burst_wait,
+                     M, interval, is_save]() {
+
+        const IntType s_rel = t_ - t0;
+
+        // (A) ログ点の進行（スキップ扱いで前進）
+        bool hit_log_point = false;
+        if (s_rel >= next_step_rel) [[unlikely]] {
+            hit_log_point = true;
+            while (s_rel >= next_step_rel) {
+                const double cand_d = std::ceil(static_cast<double>(next_step_rel) * r);
+                const IntType cand = static_cast<IntType>(cand_d);
+                next_step_rel = std::max(next_step_rel + static_cast<IntType>(1), cand);
+            }
+        }
+
+        // (B) バースト開始（到達ステップを1点目として即出力）
+        if (hit_log_point && burst_samples_left == 0 && M > 0) {
+            burst_samples_left = M;
+            burst_wait = 0;
+
+            print_energies();
+            if (is_save) {
                 xyz::save_unwrapped_atoms(traj_path_, atoms_, box_);
             }
-        });
-    }
-    else {
-        NVT_anneal_loop(cooling_rate, Thermostat, targ_temp, [this, &checker, logbin]() {
-            if(static_cast<double>(dt_real_) * static_cast<double>(t_) > checker) [[unlikely]] {
-                checker *= logbin;
+            --burst_samples_left;
+
+            burst_wait = (burst_samples_left > 0) ? interval : 0;
+        }
+
+        // (C) バースト中の interval 出力
+        if (burst_samples_left > 0) {
+            if (burst_wait == 0) {
                 print_energies();
+                if (is_save) {
+                    xyz::save_unwrapped_atoms(traj_path_, atoms_, box_);
+                }
+                --burst_samples_left;
+                burst_wait = (burst_samples_left > 0) ? interval : 0;
+            } else {
+                --burst_wait;
             }
-        });
-    }
+        }
+    };
+
+    NVT_anneal_loop(cooling_rate, Thermostat, targ_temp, callback);
 }
 
 //=====シミュレーション（1ステップ）=====
@@ -384,6 +481,8 @@ void MD::NVT_anneal_loop(const RealType cooling_rate, ThermostatType& Thermostat
     quench_steps += t_;
 
     //冷却
+    //ANNEALの場合はここでtemp_による制御が入っているから、
+    //最初の段階でtemp_を初期化する必要があった。
     while(t_ < quench_steps){
         temp_ -= dT;
         Thermostat.set_temp(temp_);

@@ -66,12 +66,15 @@ class MD{
          * @param[in] Thermostat 熱浴
          * @param[in] log その他の保存方法（現在はlogスケールのみ）
          * @param[in] is_save 各ステップごとにtrajectoryを保存するか
+         * @param[in] N_per_decade 1 decade あたりのサンプル数 N
+         * @param[in] M_boost 各点で連続保存するステップ数 M
+         * @param[in] interval_boost 連続保存する際のステップ間隔
          * 
          * @note 熱浴に、あらかじめ目標温度を設定しておいてください。
          * 
          */
         template <typename ThermostatType>
-        void NVT(const RealType tsim, ThermostatType& Thermostat, const std::string log, const bool is_save = false);        
+        void NVT(const RealType tsim, ThermostatType& Thermostat, const std::string log, const bool is_save = false,const IntType N_per_decade = 5, const IntType M_boost = 10, const IntType interval_boost = 10);        
 
         //温度変化をさせるシミュレーション
         /**
@@ -100,12 +103,15 @@ class MD{
          * @param[in] targ_temp 目標温度 (K)
          * @param[in] log その他の保存方法（現在はlogスケールのみ）
          * @param[in] is_save 各ステップごとにtrajectoryを保存するか
+         * @param[in] N_per_decade 1 decade あたりのサンプル数 N
+         * @param[in] M_boost 各点で連続保存するステップ数 M
+         * @param[in] interval_boost 連続保存する際のステップ間隔
          * 
          * @note 熱浴に、あらかじめ初期温度を設定しておいてください。
          * 
          */
         template <typename ThermostatType>
-        void NVT_anneal(const RealType cooling_rate, ThermostatType& Thermostat, const RealType targ_temp, const std::string log, const bool is_save = false);
+        void NVT_anneal(const RealType cooling_rate, ThermostatType& Thermostat, const RealType targ_temp, const std::string log, const bool is_save = false,const IntType N_per_decade = 5, const IntType M_boost = 10, const IntType interval_boost = 10);
 
         //原子の保存
         /**
@@ -146,6 +152,13 @@ class MD{
          * @brief 系の読み込み
          */
         void load_atoms(const std::string& path);
+
+        /**
+         * @brief 現在の運動温度を取得
+         */
+        RealType kinetic_temperature() const {
+            return atoms_.temperature().item<RealType>();
+        }
 
         //テスト用
         void NVE_LJ(const RealType tsim, const RealType temp, const IntType step, const bool is_save = false, const std::string output_path = "./data/saved_structure.xyz");

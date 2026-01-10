@@ -72,20 +72,44 @@ void execute_command(std::vector<Command> commands, MD& md, ThermostatType& ther
             const std::string output_method = args.at("output_method");
             const bool is_save_traj = args.count("trajectory") ? string_to_bool(args.at("trajectory")) : false;
 
+            //初期温度設定（オプショナル。指定なしでは0Kで設定される）
+            RealType init_temp = 0.0;
+            bool do_init_temp = false;
+
+            if (args.count("init_temp")) {
+                init_temp = std::stod(args.at("init_temp"));
+                do_init_temp = true;
+            }
+
+            //熱浴の温度を設定
             thermostat.set_temp(temp);
+
+            // ★ init_temp が指定されているときだけ速度初期化
+            if (do_init_temp) {
+                md.init_temp(init_temp);
+            }
+            
 
             std::cout << "シミュレーション時間: " << tsim << " fs\n"
                       << "ステップ数: " << tsim / dt << "\n"
                       << "温度: " << temp << " K\n"
                       << "保存間隔: " << output_method << "\n"
                       << "トラジェクトリの保存: " << is_save_traj << std::endl;
+            
+            //debug
+            
+            std::cout << "初期運動エネルギー温度 = "
+                    << md.kinetic_temperature() << " K" << std::endl;
 
             if (output_method == "log") {
-                md.NVT(tsim, thermostat, output_method, is_save_traj);
+                const IntType N = args.count("N_per_decade") ? std::stoi(args.at("N_per_decade")) : 5; // ★ default 5
+                const IntType M = args.count("M_boost") ? std::stoi(args.at("M_boost")) : 10;               // ★ default 10
+                const IntType Interval= args.count("interval_boost") ? std::stoi(args.at("interval_boost")) : 10; // ★ default 10
+                md.NVT(tsim, thermostat, output_method, is_save_traj, N, M, Interval);
             }
             else {
                 const IntType step = std::stoi(output_method);
-                md.NVT(temp, thermostat, step, is_save_traj);
+                md.NVT(tsim, thermostat, step, is_save_traj);
             }
 
             const std::string& save_path = cmd.redirect_target;
@@ -100,18 +124,44 @@ void execute_command(std::vector<Command> commands, MD& md, ThermostatType& ther
             const RealType target_temp = std::stod(args.at("target_temp"));
             const std::string output_method = args.at("output_method");
             const bool is_save_traj = args.count("trajectory") ? string_to_bool(args.at("trajectory")) : false;
+            
+            //ANNEALで想定している機能（melt-quench）を考えると、その前に行った平衡化の速度ベクトルを引き継ぐのが自然かもしれない。
+            //ただ、設定した温度に速度場を揃えたい場合もありそう。なので、与えた初期速度で再初期化するか、
+            //速度場を引き継ぐかをオプションで選べるようにする。
+
+            //TODO: ANNEALとNVTは将来的に統合する。T_initial, T_finalを常に与え、同じ温度であれば温度更新なし、異なる温度であれば温度更新ありのようにする。
+            
+            // ★ 追加：速度を再初期化するかどうか
+            const bool reinit_vel = args.count("reinit_vel") ? string_to_bool(args.at("reinit_vel")) : false;
+            
+            RealType current_T;
+
+            if (reinit_vel) {
+                // Maxwell-Boltzmann から再サンプル
+                md.init_temp(initial_temp);
+                current_T = initial_temp;
+            } else {
+                // 速度場をそのまま引き継ぎ、実際の運動温度を取得
+                current_T = md.kinetic_temperature();  // 上で追加したアクセサ
+            }
 
             std::cout << "冷却速度: " << cooling_rate << " K/fs\n"
-                      << "初期温度: " << initial_temp << " K\n"
-                      << "目標温度: " << target_temp << " K\n"
-                      << "ステップ数: " << static_cast<IntType>((initial_temp - target_temp) / (cooling_rate * dt)) << "\n"
-                      << "保存間隔: " << output_method << "\n"
-                      << "トラジェクトリの保存: " << is_save_traj << std::endl;
+                    << "（名目）初期温度: " << initial_temp << " K\n"
+                    << "（実際）初期温度: " << current_T << " K\n"
+                    << "目標温度: " << target_temp << " K\n"
+                    << "ステップ数(実際): "
+                    << static_cast<IntType>((current_T - target_temp) / (cooling_rate * dt)) << "\n"
+                    << "速度再初期化: " << std::boolalpha << reinit_vel << "\n"
+                    << "保存間隔: " << output_method << "\n"
+                    << "トラジェクトリの保存: " << is_save_traj << std::endl;
 
-            thermostat.set_temp(initial_temp);
+            thermostat.set_temp(current_T);
 
             if (output_method == "log") {
-                md.NVT_anneal(cooling_rate, thermostat, target_temp, output_method, is_save_traj);
+                const IntType N = args.count("N_per_decade") ? std::stoi(args.at("N_per_decade")) : 5; // ★ default 5
+                const IntType M = args.count("M_boost") ? std::stoi(args.at("M_boost")) : 10;               // ★ default 10
+                const IntType Interval= args.count("interval_boost") ? std::stoi(args.at("interval_boost")) : 10; // ★ default 10
+                md.NVT_anneal(cooling_rate, thermostat, target_temp, output_method, is_save_traj, N, M, Interval);
             }
             else {
                 const IntType step = std::stoi(output_method);
